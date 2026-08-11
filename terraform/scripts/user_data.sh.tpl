@@ -12,11 +12,13 @@ set -euxo pipefail
 # --- 런타임 설치 ---
 dnf install -y python3 python3-pip
 
-# AL2023 는 PEP 668 로 시스템 파이썬을 보호. --break-system-packages 로 우회.
-pip3 install --break-system-packages flask
+# venv 로 격리 (AL2023 기본 pip 21.x 는 --break-system-packages 미지원).
+# 시스템 파이썬을 오염시키지 않고 flask 만 담아 실행한다.
+install -d -m 0755 /opt/chaos-app
+python3 -m venv /opt/chaos-app/venv
+/opt/chaos-app/venv/bin/pip install --quiet flask
 
 # --- 앱 배치 ---
-install -d -m 0755 /opt/chaos-app
 cat > /opt/chaos-app/chaos-app.py <<'CHAOS_APP_EOF'
 ${chaos_app_code}
 CHAOS_APP_EOF
@@ -32,7 +34,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 Environment=PORT=${app_port}
-ExecStart=/usr/bin/python3 /opt/chaos-app/chaos-app.py
+ExecStart=/opt/chaos-app/venv/bin/python /opt/chaos-app/chaos-app.py
 Restart=on-failure
 RestartSec=5
 

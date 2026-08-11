@@ -62,6 +62,8 @@ Terraform 이 EC2 부팅 시 자동으로 Flask 앱을 배포한다. 4개 시나
 | 부트스트랩 스크립트 | `terraform/scripts/user_data.sh.tpl` |
 | Terraform 결합 로컬 | `terraform/chaos-app.tf` |
 
+**배포 방식**: user_data 가 `dnf` 로 python3·pip 설치 → **venv 격리 환경**(`/opt/chaos-app/venv`) 에 Flask 설치 → `chaos-app.py` 배치 → systemd 유닛 `chaos-app.service` 등록·기동. 시스템 파이썬을 오염시키지 않고, AL2023 기본 pip 21.x 에서 `--break-system-packages` 미지원 문제도 우회한다.
+
 ---
 
 ## 2. 커버 가능한 시나리오
@@ -100,6 +102,32 @@ Plan: **27 to add** (VPC/서브넷/IGW/NAT/EIP/SG/RT/EC2/IAM 두 역할/SSM 엔�
 
 ## 4. 실험 실행 절차 (Datadog 연결 전 단독 검증)
 
+> [!important] 사전 요구사항 (로컬 도구)
+> 아래 절차를 실행하는 머신에 다음이 설치되어 있어야 한다:
+> - **AWS CLI** — 프로필/크리덴셜 세팅 완료
+> - **Session Manager plugin** — `aws ssm start-session` 이 WebSocket 채널을 유지하는 데 필요 (별도 바이너리)
+> - **jq** — Terraform output(JSON) 파싱
+> - **terraform** ≥ 1.5
+>
+> Session Manager plugin 이 없으면 `SessionManagerPlugin is not found` 에러가 뜬다. AWS CLI 는 SSM `StartSession` API 호출까지만 담당하고, 실제 세션의 WebSocket 채널은 이 플러그인 바이너리가 처리하기 때문에 두 개가 다 있어야 한다.
+>
+> OS 별 설치:
+> ```bash
+> # Amazon Linux 2023 / RHEL / Fedora
+> sudo dnf install -y https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm
+>
+> # Amazon Linux 2 / CentOS 7
+> sudo yum install -y https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_64bit/session-manager-plugin.rpm
+>
+> # Ubuntu / Debian
+> curl -o /tmp/sm.deb https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_64bit/session-manager-plugin.deb \
+>   && sudo dpkg -i /tmp/sm.deb
+>
+> # macOS (Homebrew)
+> brew install --cask session-manager-plugin
+> ```
+> 설치 확인: `session-manager-plugin --version`
+
 ### 4.1 배포
 
 ```bash
@@ -113,10 +141,19 @@ terraform apply
 Apply 완료 후 다음 출력 확인:
 
 ```bash
-terraform output ec2_instance_ids            # 시나리오 유발 대상
+terraform output ec2_instance_ids            # 시나리오 유발 대상 (list)
 terraform output datadog_integration_role_arn # Datadog 콘솔에 등록할 ARN
 terraform output chaos_app_endpoints          # curl 대상 URL
 ```
+
+> [!note] user_data 변경 시 재배포
+> `terraform/scripts/*` (chaos-app.py, user_data.sh.tpl) 를 수정한 뒤 `terraform apply` 만 돌리면 인스턴스가 replace 되지 않아 새 user_data 가 실행되지 않는다. 명시적으로 강제해야 함:
+> ```bash
+> terraform apply -replace='aws_instance.poc[0]'
+> ```
+
+> [!note] 부팅 후 준비 완료까지 1~2분
+> `apply` 완료 시점부터 chaos-app 이 응답하기까지 `dnf install python3-pip` → `python3 -m venv` → `pip install flask` → systemd start 순으로 진행되어 **1~2 분** 소요된다. 준비 상태는 셸 세션에서 `sudo cloud-init status` 가 `status: done` 인지로 확인.
 
 ### 4.2 EC2 접속 (Session Manager 포트포워딩)
 
@@ -155,7 +192,47 @@ curl -X POST 'http://localhost:8080/chaos/reset'
 
 이 단계에서 EC2 콘솔이나 SSH 없이도 **각 시나리오가 실제로 유발되는지** 확인 가능. Datadog 은 아직 없어도 됨.
 
-### 4.4 정리
+### 4.4 트러블슈팅
+
+배포 초기에 부딪히기 쉬운 문제와 대응.
+
+**A. `SessionManagerPlugin is not found`**
+
+로컬에 Session Manager plugin 미설치. §4 상단 `[!important]` 콜아웃의 OS 별 설치 명령 참조. AWS CLI 는 API 호출까지만 담당하고, WebSocket 채널은 이 플러그인이 처리하므로 두 개가 다 있어야 한다.
+
+**B. `Connection to destination port failed, check SSM Agent logs`**
+
+포트포워딩 세션은 열렸지만 EC2 안 8080 에 리스너가 없음. chaos-app 이 아직 안 떴거나 실패. 셸 세션으로 진단:
+
+```bash
+aws ssm start-session --target "$INSTANCE_ID"
+# 세션 안에서:
+sudo cloud-init status                            # status: done 이어야 완료
+sudo systemctl status chaos-app                   # active (running) 이어야 정상
+sudo tail -100 /var/log/cloud-init-output.log     # 실패 시 원인 여기
+```
+
+**C. `curl: (52) Empty reply from server`**
+
+B 와 사실상 동일. SSM 터널은 살아있고 EC2 쪽 포트에 응답 없음. 위 셸 진단으로 서비스 상태 확인.
+
+**D. `Unit chaos-app.service could not be found`**
+
+user_data 가 systemd 유닛 작성 지점 이전에 실패한 상태. 대부분 pip 설치 단계에서 에러. `/var/log/cloud-init-output.log` 마지막 줄 확인. 이번 저장소는 이 문제를 예방하기 위해 **venv 방식** 을 채택했지만, 만약 재발하면 여기서 원인 잡음.
+
+**E. user_data 변경했는데 반영 안 됨**
+
+Terraform 은 user_data 변경만으로는 인스턴스를 replace 하지 않는다:
+
+```bash
+terraform apply -replace='aws_instance.poc[0]'
+```
+
+**F. `SessionManagerPlugin` 은 있는데 `TargetNotConnected`**
+
+EC2 가 아직 SSM 에 등록되지 않음. 부팅 후 30초~1분 대기. `enable_ssm_endpoints=true` (기본) 라면 프라이빗 서브넷에서도 정상 등록되어야 함.
+
+### 4.5 정리
 
 데모/실험 종료 후:
 
