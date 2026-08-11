@@ -5,6 +5,8 @@ status: in-progress
 meeting: 2026-08-13 09:00
 created: 2026-08-11
 owner: megazone-msp
+aliases:
+  - "Datadog PoC — 진행 방향 및 Terraform 준비"
 ---
 
 # Datadog PoC — 진행 방향 및 Terraform 준비

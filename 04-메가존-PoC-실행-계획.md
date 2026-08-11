@@ -5,6 +5,8 @@ status: in-progress
 meeting: 2026-08-13 09:00
 created: 2026-08-11
 owner: megazone-msp
+aliases:
+  - "메가존 PoC 실행 계획"
 related:
   - "[[Datadog PoC — 진행 방향 및 Terraform 준비]]"
   - "[[Datadog AI 자율운영 스택 — 3개 기능의 원래 목적]]"

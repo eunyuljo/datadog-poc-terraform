@@ -3,6 +3,8 @@ tags: [datadog, product-overview, bits-detection, bio, workflow-automation, ai-o
 type: reference
 status: draft
 created: 2026-08-11
+aliases:
+  - "Datadog AI 자율운영 스택 — 3개 기능의 원래 목적"
 related:
   - "[[Datadog PoC — 진행 방향 및 Terraform 준비]]"
 ---

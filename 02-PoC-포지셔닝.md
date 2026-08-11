@@ -3,6 +3,9 @@ tags: [datadog, poc, positioning, roadmap, partnership, co-design, preview]
 type: reference
 status: draft
 created: 2026-08-11
+aliases:
+  - "이 PoC 의 성격 — Preview 와 자동화 확장, 그리고 파트너십"
+  - "PoC 포지셔닝"
 related:
   - "[[Datadog PoC — 진행 방향 및 Terraform 준비]]"
   - "[[Datadog AI 자율운영 스택 — 3개 기능의 원래 목적]]"

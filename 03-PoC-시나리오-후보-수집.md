@@ -3,6 +3,9 @@ tags: [datadog, poc, scenarios, backlog, breadth, depth, msp-operations]
 type: reference
 status: living
 created: 2026-08-11
+aliases:
+  - "PoC 시나리오 후보 수집"
+  - "PoC 시나리오 후보 수집 — Breadth & Depth"
 related:
   - "[[Datadog PoC — 진행 방향 및 Terraform 준비]]"
   - "[[Datadog AI 자율운영 스택 — 3개 기능의 원래 목적]]"
