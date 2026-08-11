@@ -37,6 +37,8 @@ Environment=PORT=${app_port}
 ExecStart=/opt/chaos-app/venv/bin/python /opt/chaos-app/chaos-app.py
 Restart=on-failure
 RestartSec=5
+# 시나리오 #1(orphan) 재현을 위해 main PID 만 정리. 자식 프로세스는 cgroup 정리 대상에서 제외 -> PPID=1 로 재부모화되어 진짜 orphan 이 됨.
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target

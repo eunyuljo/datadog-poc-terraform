@@ -168,26 +168,190 @@ aws ssm start-session --target "$INSTANCE_ID" \
 
 포트포워딩 세션을 유지한 채 다른 터미널에서 curl.
 
-### 4.3 시나리오 유발 (수동, 각 시나리오 개별 실험)
+### 4.3 시나리오 유발과 검증
+
+각 시나리오는 **유발(curl) → OS 레벨 검증(EC2 셸)** 순으로 확인한다. Datadog 이 없어도 실제 장애가 재현됨을 눈으로 검증 가능하며, 이후 Datadog 이 붙었을 때 이 지점들이 자동 관측 대상이 된다.
+
+#### 한 눈에 보는 관찰 지점
+
+| 시나리오 | 어디를 보는가 | 성공 판정 |
+|---|---|---|
+| #3 메모리 누수 | `ps -o rss`, `free -h` | Python RSS 증가, available 감소 |
+| #1 좀비/고아 | `ps -o pid,ppid`, `pgrep sleep` | 자식 sleep 프로세스가 남아있음 |
+| #2 디스크 고갈 | `df -h /`, `ls /tmp` | 파티션 사용률 상승 |
+| #4 CPU spike | `top`, `uptime` | CPU 사용률 지속 100%, load average 상승 |
+
+포트포워딩 세션은 유지하고, 검증은 **별도 SSM 셸 세션** 에서 수행한다:
 
 ```bash
-# #3 메모리 누수 — 200MB 씩 반복 호출
+aws ssm start-session --target "$INSTANCE_ID"
+# 세션 안에서 sudo -i 로 root 전환하면 편함
+```
+
+---
+
+#### 시나리오 #3 — 메모리 누수 / OOM 사전 방지
+
+**증상**  
+Python 프로세스가 요청받은 만큼 메모리를 할당해 붙잡아 둠. 반복되면 시스템 `available` 이 고갈되고 커널 OOM Killer 가 개입해 프로세스 강제 종료. 실제 운영에서는 서비스 latency 상승, GC 폭주, 반복 재시작으로 이어진다.
+
+**유발**
+```bash
 curl -X POST 'http://localhost:8080/chaos/leak-memory?mb=200'
+```
 
-# #1 orphan 프로세스 10개 spawn
+**검증 (EC2 셸에서)**
+```bash
+# Python 프로세스의 RSS
+ps -o pid,user,rss,vsz,comm -C python
+#   RSS ≈ 요청 MB + ~28 MB (인터프리터·Flask 오버헤드)
+
+# 전체 메모리
+free -h
+#   used 증가, available 감소
+```
+
+**OOM 유도까지 밀어보기** (t3.small = 2 GiB 기준 5~8회 누적 시)
+```bash
+for i in $(seq 1 8); do
+  curl -s -X POST 'http://localhost:8080/chaos/leak-memory?mb=200'
+done
+
+# EC2 셸에서
+dmesg | tail -20                    # oom_reaper 로그
+sudo journalctl -u chaos-app -n 30  # systemd 재시작 이력
+```
+
+---
+
+#### 시나리오 #1 — 좀비/고아 프로세스
+
+**증상**  
+`sleep` 자식 프로세스를 spawn 만 하고 `wait()` 하지 않음. 부모(chaos-app) 가 살아있는 동안은 자식이 chaos-app 아래 매달림. 부모가 죽으면 자식이 PPID=1(systemd) 로 재부모화되어 **진짜 orphan**. 실제 운영에서는 PID 자원 서서히 고갈, `fork()` 실패, 정체불명 프로세스 유령이 문제가 된다.
+
+> [!important] systemd `KillMode=process` 가 전제
+> 이 시나리오가 진짜 orphan(PPID=1)을 만들려면 systemd 유닛이 `KillMode=process` 로 설정되어 있어야 한다. 기본값(`control-group`)이면 main PID 가 죽을 때 systemd 가 cgroup 전체를 정리해서 자식이 함께 죽고 orphan 상태가 되지 않는다. 이 저장소의 `user_data.sh.tpl` 은 이미 `KillMode=process` 를 포함하고 있음.
+
+**유발**
+```bash
 curl -X POST 'http://localhost:8080/chaos/fork-orphan?count=10'
+```
 
-# #2 /tmp 에 2GB 파일 생성
-curl -X POST 'http://localhost:8080/chaos/fill-disk?mb=2000'
+**1단계 검증: 자식 상태 (부모 살아있음)**
+```bash
+CHAOS_PID=$(sudo systemctl show chaos-app --property MainPID --value)
+echo "chaos-app PID: $CHAOS_PID"
 
-# #4 2 threads 로 120초간 CPU burn
-curl -X POST 'http://localhost:8080/chaos/cpu-burn?seconds=120&threads=2'
+# 10개 sleep 프로세스가 chaos-app 자식으로 매달림
+pgrep -P "$CHAOS_PID" -a
 
-# 현재 상태 조회
-curl 'http://localhost:8080/chaos/stats'
+# 상세: PPID = chaos-app PID
+ps -o pid,ppid,stat,comm -C sleep
+```
 
-# 다음 반복 전 정리
-curl -X POST 'http://localhost:8080/chaos/reset'
+**2단계 검증: 진짜 orphan 만들기**
+```bash
+# chaos-app 만 kill (systemctl stop 아님)
+sudo kill -9 "$CHAOS_PID"
+
+# 2~3초 안에 재확인 — systemd 가 재시작하기 전
+ps -o pid,ppid,stat,comm -C sleep
+# → 모든 sleep 의 PPID 가 1 로 바뀜 = 진짜 orphan
+```
+
+이 상태에서:
+- 원 chaos-app 은 죽음
+- systemd 가 곧 재시작하지만(`Restart=on-failure`), sleep 들은 새 서비스와 무관하게 **살아남음**
+- 새 chaos-app 은 자기 `orphan_pids` 리스트가 비어있음 → `/chaos/reset` 을 호출해도 이 orphan 들을 못 찾음
+
+**정리 방법 3가지**
+
+- **A. 수동 kill (운영 인력)**
+  ```bash
+  sudo pkill -f 'sleep 3600'
+  ```
+- **B. `/chaos/reset` — 재시작 전에만 유효**
+  chaos-app 이 살아있을 때 자기 자식들을 SIGKILL. 재시작 후엔 무효.
+- **C. Datadog + BIO/Workflow (미래)**
+  orphan 감지 → Workflow 로 SSM SendCommand `pkill` 자동 실행. 시나리오 #1 자동조치의 원본 그림.
+
+**관찰 지점 요약**
+
+| 시점 | ps 로 봐야 할 것 |
+|---|---|
+| fork-orphan 직후 | sleep 10개, PPID = chaos-app PID |
+| chaos-app kill 직후 | sleep 10개, **PPID = 1** ← 이게 진짜 orphan |
+| chaos-app 재시작 후 | sleep 10개 여전히 PPID = 1 (새 chaos-app 은 자기 자식 아님) |
+| `pkill -f sleep` 후 | sleep 0개 |
+
+---
+
+#### 시나리오 #2 — 디스크 고갈
+
+**증상**  
+`/tmp` 에 대용량 파일이 쌓임. 지속되면 파티션 사용률이 임계를 넘고, 앱은 로그·임시 파일 쓰기 실패로 hang 하거나 5xx 반환. 실제 운영에서는 debug 로그 폭주, 배치 결과 파일 누적이 원인.
+
+**유발**
+```bash
+curl -X POST 'http://localhost:8080/chaos/fill-disk?mb=1000'
+```
+
+**검증 (EC2 셸에서)**
+```bash
+# 생성된 파일들
+ls -lh /tmp/chaos-fill-*
+
+# 루트 파티션 사용률
+df -h /
+
+# /tmp 총 용량
+du -sh /tmp
+```
+
+**연속 유발로 사용률 90% 넘기기**
+```bash
+for i in $(seq 1 5); do
+  curl -s -X POST 'http://localhost:8080/chaos/fill-disk?mb=1000'
+done
+df -h /
+```
+
+---
+
+#### 시나리오 #4 — CPU Spike / 스케일 트리거
+
+**증상**  
+지정한 threads 수만큼 CPU 100% 소진. load average 상승, 동일 인스턴스의 다른 프로세스(SSM Agent, systemd 등) 응답성 저하. 실제 운영에서는 트래픽 폭주와 동일한 프로파일이며, ASG 스케일 트리거 조건이 된다.
+
+**유발**
+```bash
+curl -X POST 'http://localhost:8080/chaos/cpu-burn?seconds=60&threads=2'
+```
+
+**검증 (EC2 셸에서)**
+```bash
+# 스냅샷 (헤더 + 상위 프로세스)
+top -bn 1 | head -20
+
+# load average 추이 (1/5/15 분)
+uptime
+
+# 지속 관찰
+top    # q 로 종료
+```
+
+t3.small 은 vCPU 2 개이므로 `threads=2` 면 이론상 2 코어 완전 소진. **`enable_autoscaling_target=true`** 로 ASG 를 켜둔 상태에서 유발해야 ASG 스케일 시나리오(#4)의 원본 그림이 재현된다.
+
+---
+
+#### 공용: 상태 조회와 정리
+
+```bash
+# 앱이 인지한 현재 상태 (leaked_mb, orphan_pids, disk_files)
+curl -s http://localhost:8080/chaos/stats | python3 -m json.tool
+
+# 다음 실험 전 상태 초기화
+curl -X POST http://localhost:8080/chaos/reset
 ```
 
 이 단계에서 EC2 콘솔이나 SSH 없이도 **각 시나리오가 실제로 유발되는지** 확인 가능. Datadog 은 아직 없어도 됨.
