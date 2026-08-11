@@ -1,0 +1,20 @@
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Variable files with secrets
+terraform.tfvars
+*.auto.tfvars
+
+# Plan output
+*.tfplan
+
+# Lock file은 커밋 권장 (필요 시 주석 해제)
+# .terraform.lock.hcl

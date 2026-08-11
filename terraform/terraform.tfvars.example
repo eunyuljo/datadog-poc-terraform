@@ -1,0 +1,14 @@
+# terraform.tfvars.example
+# 이 파일을 terraform.tfvars 로 복사한 뒤 실제 값으로 채워 사용하세요.
+# (terraform.tfvars 는 .gitignore 로 커밋 제외)
+
+region       = "ap-northeast-2"
+project_name = "ddog-poc"
+owner        = "megazone-msp"
+
+# Datadog 통합 화면(Integrations > AWS)에서 확인/발급되는 값으로 교체
+datadog_aws_account_id = "464622532012"
+datadog_external_id    = "PASTE_REAL_EXTERNAL_ID_HERE"
+
+# CPU Spike 자동조치(ASG SetDesiredCapacity) 시나리오를 검증하려면 true
+enable_autoscaling_target = true
