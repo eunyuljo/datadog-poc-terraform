@@ -121,7 +121,8 @@ terraform output chaos_app_endpoints          # curl 대상 URL
 ### 4.2 EC2 접속 (Session Manager 포트포워딩)
 
 ```bash
-INSTANCE_ID=$(terraform output -raw ec2_instance_ids | jq -r '.[0]')
+# ec2_instance_ids 는 리스트라 -json 으로 뽑아 jq 로 첫 원소 추출
+INSTANCE_ID=$(terraform output -json ec2_instance_ids | jq -r '.[0]')
 
 aws ssm start-session --target "$INSTANCE_ID" \
   --document-name AWS-StartPortForwardingSession \
