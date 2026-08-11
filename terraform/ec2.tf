@@ -26,13 +26,9 @@ resource "aws_instance" "poc" {
   vpc_security_group_ids = [aws_security_group.instance.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_ssm.name
 
-  # AL2023은 SSM Agent가 기본 내장이라 UserData 불필요.
-  # 커스텀 AMI 사용 시 아래처럼 설치/기동 스크립트를 넣는다.
-  # user_data = <<-EOF
-  #   #!/bin/bash
-  #   dnf install -y https://s3.${var.region}.amazonaws.com/amazon-ssm-${var.region}/latest/linux_amd64/amazon-ssm-agent.rpm
-  #   systemctl enable --now amazon-ssm-agent
-  # EOF
+  # enable_chaos_app=true 인 경우 chaos-app.tf 의 로컬이 렌더링한 스크립트를 삽입.
+  # AL2023 은 SSM Agent 내장이라 별도 설치 불필요.
+  user_data = local.chaos_app_user_data
 
   metadata_options {
     http_tokens   = "required" # IMDSv2 강제

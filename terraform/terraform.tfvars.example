@@ -20,3 +20,9 @@ enable_autoscaling_target = true
 #   (NAT 만으로 SSM 통신하고 비용 절감할 때)
 enable_nat_gateway   = false
 enable_ssm_endpoints = true
+
+# Chaos playground 앱 (EC2 부팅 시 자동 배포)
+# - 시나리오 #1(orphan) #2(disk) #3(memory) #4(cpu) 유발 엔드포인트 제공
+# - pip 설치 필요 -> enable_nat_gateway=true 가 전제
+enable_chaos_app = true
+chaos_app_port   = 8080

@@ -100,3 +100,21 @@ variable "public_subnet_cidrs" {
   type        = list(string)
   default     = ["10.20.101.0/24", "10.20.102.0/24"]
 }
+
+# -------------------------------------------------------------------
+# Chaos playground 앱 (EC2 자동 배포)
+# -------------------------------------------------------------------
+# 시나리오 #1 orphan / #2 disk / #3 memory / #4 cpu 를 유발할 수 있는
+# Flask 앱을 user_data 로 자동 설치·기동한다.
+# NOTE: pip 설치가 필요해 인터넷 아웃바운드(enable_nat_gateway=true) 가 요구된다.
+variable "enable_chaos_app" {
+  description = "EC2 부팅 시 chaos playground Flask 앱 자동 배포 여부"
+  type        = bool
+  default     = true
+}
+
+variable "chaos_app_port" {
+  description = "Chaos playground 앱 리슨 포트 (Session Manager 포트포워딩 대상)"
+  type        = number
+  default     = 8080
+}
