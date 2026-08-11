@@ -12,3 +12,11 @@ datadog_external_id    = "PASTE_REAL_EXTERNAL_ID_HERE"
 
 # CPU Spike 자동조치(ASG SetDesiredCapacity) 시나리오를 검증하려면 true
 enable_autoscaling_target = true
+
+# 아웃바운드 경로 토글
+# - enable_nat_gateway=true : NAT Gateway + IGW + public subnet 생성
+#   (Datadog Agent 설치 등 인터넷 아웃바운드가 필요할 때)
+# - enable_ssm_endpoints=false : SSM VPC Interface 엔드포인트 3종 미생성
+#   (NAT 만으로 SSM 통신하고 비용 절감할 때)
+enable_nat_gateway   = false
+enable_ssm_endpoints = true

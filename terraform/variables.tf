@@ -77,3 +77,26 @@ variable "enable_autoscaling_target" {
   type        = bool
   default     = true
 }
+
+# -------------------------------------------------------------------
+# 아웃바운드 경로 토글
+# -------------------------------------------------------------------
+# NAT Gateway 와 SSM VPC 엔드포인트는 SSM 통신 관점에서 상호 대체재.
+# 세 조합(NAT-only / Endpoint-only / Both) 모두 지원.
+variable "enable_nat_gateway" {
+  description = "NAT Gateway + IGW + public subnet 생성 여부. Datadog Agent 등 인터넷 아웃바운드가 필요하면 true"
+  type        = bool
+  default     = false
+}
+
+variable "enable_ssm_endpoints" {
+  description = "SSM Interface 엔드포인트 3종 생성 여부. NAT만으로도 SSM 통신은 가능하지만 보안상 백본 유지를 원하면 true"
+  type        = bool
+  default     = true
+}
+
+variable "public_subnet_cidrs" {
+  description = "NAT Gateway 배치용 퍼블릭 서브넷 CIDR. enable_nat_gateway=true 일 때만 사용"
+  type        = list(string)
+  default     = ["10.20.101.0/24", "10.20.102.0/24"]
+}

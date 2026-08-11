@@ -114,7 +114,7 @@ locals {
 }
 
 resource "aws_vpc_endpoint" "ssm" {
-  for_each = toset(local.ssm_interface_endpoints)
+  for_each = var.enable_ssm_endpoints ? toset(local.ssm_interface_endpoints) : toset([])
 
   vpc_id              = aws_vpc.this.id
   service_name        = "com.amazonaws.${var.region}.${each.value}"
@@ -126,4 +126,84 @@ resource "aws_vpc_endpoint" "ssm" {
   tags = {
     Name = "${var.project_name}-vpce-${each.value}"
   }
+}
+
+# -------------------------------------------------------------------
+# NAT Gateway 경로 (선택)
+# enable_nat_gateway=true 인 경우에만 IGW + public subnet + NAT 생성.
+# PoC 비용 최소화를 위해 NAT 는 첫 번째 AZ 에 단일 배치.
+# -------------------------------------------------------------------
+resource "aws_internet_gateway" "this" {
+  count  = var.enable_nat_gateway ? 1 : 0
+  vpc_id = aws_vpc.this.id
+
+  tags = {
+    Name = "${var.project_name}-igw"
+  }
+}
+
+resource "aws_subnet" "public" {
+  count                   = var.enable_nat_gateway ? length(var.public_subnet_cidrs) : 0
+  vpc_id                  = aws_vpc.this.id
+  cidr_block              = var.public_subnet_cidrs[count.index]
+  availability_zone       = var.azs[count.index]
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "${var.project_name}-public-${var.azs[count.index]}"
+    Tier = "public"
+  }
+}
+
+resource "aws_route_table" "public" {
+  count  = var.enable_nat_gateway ? 1 : 0
+  vpc_id = aws_vpc.this.id
+
+  tags = {
+    Name = "${var.project_name}-public-rt"
+  }
+}
+
+resource "aws_route" "public_default" {
+  count                  = var.enable_nat_gateway ? 1 : 0
+  route_table_id         = aws_route_table.public[0].id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.this[0].id
+}
+
+resource "aws_route_table_association" "public" {
+  count          = var.enable_nat_gateway ? length(aws_subnet.public) : 0
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public[0].id
+}
+
+resource "aws_eip" "nat" {
+  count      = var.enable_nat_gateway ? 1 : 0
+  domain     = "vpc"
+  depends_on = [aws_internet_gateway.this]
+
+  tags = {
+    Name = "${var.project_name}-nat-eip"
+  }
+}
+
+resource "aws_nat_gateway" "this" {
+  count         = var.enable_nat_gateway ? 1 : 0
+  allocation_id = aws_eip.nat[0].id
+  subnet_id     = aws_subnet.public[0].id
+
+  tags = {
+    Name = "${var.project_name}-nat"
+  }
+
+  depends_on = [aws_internet_gateway.this]
+}
+
+# 기존 private route table 에 NAT 향 default route 를 조건부로 추가.
+# route table 자체는 재사용, 라우트만 별도 리소스로 분리.
+resource "aws_route" "private_default" {
+  count                  = var.enable_nat_gateway ? 1 : 0
+  route_table_id         = aws_route_table.private.id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.this[0].id
 }

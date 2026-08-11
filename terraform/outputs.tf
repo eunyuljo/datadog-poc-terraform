@@ -31,6 +31,21 @@ output "autoscaling_group_name" {
 }
 
 output "ssm_vpc_endpoint_ids" {
-  description = "SSM 통신용 Interface 엔드포인트 ID"
+  description = "SSM 통신용 Interface 엔드포인트 ID (enable_ssm_endpoints=false 시 빈 map)"
   value       = { for k, v in aws_vpc_endpoint.ssm : k => v.id }
+}
+
+output "nat_gateway_id" {
+  description = "NAT Gateway ID (enable_nat_gateway=true 시)"
+  value       = try(aws_nat_gateway.this[0].id, null)
+}
+
+output "internet_gateway_id" {
+  description = "Internet Gateway ID (enable_nat_gateway=true 시)"
+  value       = try(aws_internet_gateway.this[0].id, null)
+}
+
+output "public_subnet_ids" {
+  description = "NAT 배치용 퍼블릭 서브넷 ID 목록 (enable_nat_gateway=true 시)"
+  value       = aws_subnet.public[*].id
 }
