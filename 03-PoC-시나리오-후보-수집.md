@@ -11,6 +11,7 @@ related:
   - "[[Datadog AI 자율운영 스택 — 3개 기능의 원래 목적]]"
   - "[[이 PoC 의 성격 — Preview 와 자동화 확장, 그리고 파트너십]]"
   - "[[메가존 PoC 실행 계획]]"
+  - "[[사전 검증 Guardrail 시나리오]]"
 ---
 
 # PoC 시나리오 후보 수집 — Breadth · Depth · Prevention
@@ -110,6 +111,9 @@ MSP 관점에서 실제 마주치는 운영 이슈. Datadog 현재 스택 대응
 | CodeDeploy/CodePipeline 실패 반복 | Monitor + Workflow |
 | Canary 배포 에러율 임계 | Datadog Deployment Tracking |
 | 롤백 자동화 | Workflow ✅ |
+| **ECS Deployment 실패** — `maximumPercent`/`minimumHealthyPercent` 부적정, 클러스터 capacity 부족, task placement 실패 | ECS Service Events + Monitor + Workflow |
+| **ECS DeploymentCircuitBreaker 발동** (자동 롤백 이벤트) | EventBridge → Datadog → 알림·감사 |
+| **CodeDeploy Blue-Green replacement 실패** (healthy 조건 미달) | CodeDeploy 이벤트 → Datadog Monitor |
 
 ### H. 관측성 자체 (Meta-observability)
 
@@ -245,6 +249,11 @@ MSP 관점에서 실제 마주치는 운영 이슈. Datadog 현재 스택 대응
 | 금요일 오후 배포 자동 경고 | 운영 시간 인식 |
 | 최근 실패 이력 있는 서비스 재배포 감지 | 리스크 인지 트리거 |
 | 배포 5분 후 지표 이상 (배포 원인 판단) | Datadog Deployment Tracking 활용 |
+| 특정 서비스의 반복적 배포 실패 패턴 학습 | *"이 서비스는 배포 실패율 30%"* 사전 표시. Bits Detection 학습 강점 |
+| Task placement 실패 조짐 (배포 없어도 유지 중 capacity 부족) | 다음 배포 예정된 시점에 실패 예상 → 사전 capacity 상향 |
+
+> [!note] 사전 검증 성격은 05 로 이동
+> *"ECS 배포 전 configuration 검증"* 이나 *"배포 전략 ↔ 아키텍처 불일치 감지"* 처럼 **작업 실행 시점의 pre-flight check** 성격은 이 문서(감지·조치 축) 가 아니라 [[사전 검증 Guardrail 시나리오]] (문서 05) 로 이동했다. 이 문서는 Datadog 이 능동적 관찰자로 감지하는 시나리오만 담는다.
 
 ### 3.3 특히 강조할 만한 3가지 (미팅용)
 
