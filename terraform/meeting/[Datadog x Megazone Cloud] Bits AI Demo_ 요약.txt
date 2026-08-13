@@ -1,0 +1,75 @@
+[Datadog x Megazone Cloud] Bits AI Demo — Detection & Infra Ops
+2026년 8월 13일 (목)
+
+요약:
+
+The meeting evaluated Datadog Bits AI for AWS infrastructure monitoring, investigation, and remediation.
+• Bits Detection identifies critical services and manages monitors.
+• Bits Investigation correlates telemetry to determine root causes.
+• Korean chat support exists; monitor localization remains unresolved.
+• Detection requires one week of threshold training.
+• Preview coverage is limited to 100 critical services.
+• InfraOps targets disks, zombie processes, and memory leaks.
+• Approximately 4,000 hosts are in scope.
+
+
+작업 항목들:
+
+* Samantha Scaglione will take localized language support for Bits monitors back to her team for investigation
+* Meeting participant will continue evaluating user-configurable monitor governance and message formatting as a roadmap requirement
+
+
+핵심 토론 사항:
+
+Meeting Context and Business Objective
+Patrick Lee and Samantha Scaglione opened the meeting while waiting for additional participants to join. Patrick explained that Megazone Cloud’s CEO asked internal teams to assess how Datadog and Bits AI could be integrated into daily workflows, with particular emphasis on the AWS MSP team.
+
+Audience and Session Scope
+Patrick clarified that the AWS MSP team had been invited to evaluate how Bits AI could support its operations, distinguishing the audience from the Datadog team. The participants agreed to begin with an overview of Bits AI for autonomous operations and then proceed to a deeper demonstration of Bits detection.
+
+Participant Familiarity and Presentation Setup
+Samantha asked about the group’s familiarity with Bits investigations. Patrick explained that some Megazone Cloud data-team participants were familiar with Bits investigations, while the AWS MSP team was not familiar with Bits AI or the Datadog platform, so Samantha agreed to provide foundational material before the detection discussion. Samantha began sharing her screen and asked Patrick to pause the presentation for questions or team review, with Patrick planning to provide explanations in Korean when needed.
+
+Autonomous Production Operations Loop
+Samantha explained why production operations are complex and how unreliable monitoring can undermine customer trust, SLA performance, and margins. She introduced Datadog’s operations loop, covering detection, investigation, action, remediation, and validation.
+
+Bits Detection and Monitoring Coverage
+Samantha introduced Bits detection as a system for autonomously identifying issues that require attention. She described how it addresses monitoring gaps by identifying critical services and resource paths, provisioning monitoring, calibrating thresholds, and adapting based on historical telemetry and incident-response behavior.
+
+Managed Monitor Demonstration
+Samantha demonstrated autonomously provisioned monitors in an application performance monitoring service page. She explained how Bits uses telemetry, traffic patterns, service metadata, developer-portal information, and integrations to identify critical endpoints and provide transparency into monitoring rationale.
+
+User Feedback and Alert Triage
+The demonstration showed how users can modify endpoint criticality or provide natural-language feedback through Bits chat. Samantha then explained that Bits routes threshold breaches through triage to determine actionability, suppress redundant alerts, and prioritize issues requiring response.
+
+Monitor Messages, Correlation, and Triage Configuration
+Patrick asked whether Bits writes the troubleshooting content in managed monitor messages, and Samantha confirmed that it does while remaining configurable. She also explained that Bits correlates related telemetry, learns from responder behavior, and supports triage rules for alert destinations and optional automatic investigation.
+
+Bits Detection Compared with Watchdog
+Samantha distinguished Bits managed monitors from Watchdog monitors. Watchdog identifies anomalous behavior using a standardized model, while Bits focuses on business impact and can adapt to organizational feedback, expected behavior, and seasonality.
+
+Localization and Monitor Template Configuration
+The group discussed whether Bits monitors could support Korean or other local languages, distinguishing monitor localization from the existing Korean capability in BitsChat. They also reviewed whether users could influence monitor templates and governance; Samantha explained that message editing is available now, while deeper templating and configuration are roadmap items without a shared timeline.
+
+Detection Coverage and Monitor Limits
+The discussion addressed current Bits detection coverage for HTTP and gRPC APM data and future expansion into front-end monitoring, real user monitoring, additional operation types, and Envoy. Samantha clarified that Bits-managed monitors are independent of standard monitor provisioning limits, while the preview period is limited to 100 critical services.
+
+Bits Investigation and Remediation Demonstration
+Samantha demonstrated Bits investigation for participants who were unfamiliar with the capability. The walkthrough showed hypothesis tracking, use of Datadog telemetry and GitHub integration, root-cause identification, impact timelines, and recommended remediation through code fixes, infrastructure actions, or a private action runner.
+
+Learning Period and Data Quality Requirements
+The team asked whether Bits requires a learning period before operating on telemetry. Samantha explained that detection uses a one-week calibration period, while investigation and remediation operate without required training and become more precise as Bits learns organizational practices and uses consistent service and environment tags.
+
+Managed Monitor Lifecycle and Customization
+Whiwon asked whether BITS automatically removes monitors that have not alerted for an extended period. Samantha explained that BITS considers broader signals, including the absence of service traffic, because some monitors are intended to detect rare but severe incidents. The discussion then covered which fields can be edited without removing BITS management and how changing thresholds or query scope creates a self-managed monitor.
+
+Bits Infrastructure Operations Introduction
+Samantha concluded her portion and handed the discussion to the Bits Infrastructure Operations team. Jace Harker introduced himself as a product manager and confirmed the audience’s infrastructure context, including management of approximately 4,000 hosts and interest in several infrastructure failure scenarios.
+
+Bits InfraOps Demonstration and Remediation Model
+Jace began a demonstration of Bits InfraOps, describing it as a frontline responder for infrastructure issues. He explained that the system detects problems, investigates root causes, proposes fixes for approval, and performs remediation. His example focused on clearing log-related disk pressure and correcting log-rotation configuration to prevent recurrence.
+
+
+메모장:
+
+* 메모 없음

@@ -23,6 +23,27 @@ enable_ssm_endpoints = true
 
 # Chaos playground 앱 (EC2 부팅 시 자동 배포)
 # - 시나리오 #1(orphan) #2(disk) #3(memory) #4(cpu) 유발 엔드포인트 제공
+# - 가짜 비즈니스 엔드포인트 (/api/products, /api/orders, /api/checkout 등) 포함
 # - pip 설치 필요 -> enable_nat_gateway=true 가 전제
 enable_chaos_app = true
 chaos_app_port   = 8080
+
+# ---------------------------------------------------------------------
+# Datadog Agent + APM 계측
+# ---------------------------------------------------------------------
+# Datadog API key 확보 전이면 enable_datadog_agent=false 로 두어 앱만 실행.
+# key 확보 후 true 로 바꾸고 datadog_api_key 를 채워 apply 하면 계측 시작.
+enable_datadog_agent = false
+datadog_api_key      = "" # 예: "abcd...1234". terraform.tfvars 에만 두고 커밋 금지.
+datadog_site         = "datadoghq.com"
+dd_service           = "chaos-app"
+dd_env               = "poc"
+dd_version           = "0.1.0"
+
+# ---------------------------------------------------------------------
+# 트래픽 제너레이터 (Bits Detection 1주 학습용 baseline)
+# ---------------------------------------------------------------------
+# chaos-app 과 같은 EC2 에 systemd 유닛으로 뜸. localhost:8080/api/* 를 지속 호출.
+# 시간대별 배수: 야간 1x, 새벽 2x, 주간 4x, 저녁 2x (UTC 기준).
+enable_traffic_generator   = true
+traffic_generator_base_rps = 2

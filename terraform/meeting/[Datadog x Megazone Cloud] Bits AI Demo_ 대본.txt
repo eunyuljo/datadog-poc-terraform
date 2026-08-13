@@ -1,0 +1,281 @@
+[Datadog x Megazone Cloud] Bits AI Demo — Detection & Infra Ops
+2026년 8월 13일 (목)
+
+0:22 - Patrick Lee
+Hi, Samantha. Hi, Patrick.
+
+0:25 - Samantha Scaglione
+How are you?
+
+0:26 - Patrick Lee
+I'm doing great. We're actually at a conference room together. They just didn't turn on the video yet. But just to briefly show, well, for a sec, we're still waiting for some people to come. So, could you give us a couple minutes?
+
+0:45 - Samantha Scaglione
+Absolutely. Take your time. Yeah.
+
+1:11 - Patrick Lee
+So Samantha, just before we get to it, let me explain. I know I shared the context with you, but MZC_SCKIM Cloud is a premier partner to Datadog's business. And our focus today is not the Datadog team. They also have a bigger AWS MSD team they have business with. With. And the company's goal, the CEO of Magazine Cloud, has asked all teams to review how Datadog can be built in within their day-to-day workflows, operations for the AWS MSP team as well. So that's why a part to the Datadog team itself. We have invited the aws msb team to to see what they could possibly do with uh bits ai uh and and help help their day-to-day operations so um hi Jace hi no man hi hi mario hi great great uh nice to mitchel Could you just give us one minute? We still have a few people coming into the room. Oh, and you ask you.
+
+2:51 - Patrick Lee
+Ah, I guess me that. Columnine or Kulumisha. I don't know. Ah. So yeah, Samantha and Jace, as explained, we are at a conference room. This is my laptop, but we're sitting here. We're all listening to you. And Jason, Noman, I'm not sure if you caught the last bits of what I just shared. For the context, MZC_SCKIM Cloud is a data dog premiere partner, but today we have invited their AWS MSP team. To see how BITS can fit into their operations. The business goal is the CEO of MZC_SCKIM Cloud has asked every team within data, I mean within MZC_SCKIM, to see how they can adapt and operate BITS AI. So, Will, Samantha, I think we can get started. Do you have any order of agenda? You want to set before we begin?
+
+3:57 - Samantha Scaglione
+I can translate to them in Korean. Perfect. I was hoping that we could start with an overview of BITS AI for autonomous operations before we do a deeper dive in product on BITS detection.
+
+4:11 - Patrick Lee
+Yeah.
+
+4:36 - Patrick Lee
+So we're assuming that you'll show us an overview and demo of BIDS detect, correct?
+
+4:43 - Samantha Scaglione
+Yes, exactly.
+
+4:45 - Patrick Lee
+Okay, yeah, I think we can get started. And let me just be clarify.
+
+5:11 - 알 수 없는 화자
+Amazing.
+
+5:11 - Samantha Scaglione
+And Patrick, as we get started, can I ask how familiar the group is with BITS investigations already?
+
+5:19 - Patrick Lee
+Yeah, yeah, I can ask. So, right now in the room and the call, so one-third to half of the team are the MegaZone's data team. They should be very familiar with BITS investigation, but I doubt the AWS MSP team is. But let me quickly ask who.
+
+6:04 - Patrick Lee
+So, yeah, the AWS MSP team. They are not even BitsAI, but they're not familiar with the data.platform itself.
+
+6:13 - Samantha Scaglione
+Okay, we can definitely give a foundation before we dig into detection.
+
+6:20 - 알 수 없는 화자
+Awesome.
+
+6:21 - Samantha Scaglione
+Let me go ahead and share my screen. And Patrick, I'll ask you if you don't mind, let me know when you'd like me to pause so you can review with the team, see if there are any questions.
+
+6:33 - Patrick Lee
+Sure. So my understanding, Koreans, they're a bit shy to speak in English, but I would assume most of them, they can understand English. So I don't think there will be much problem, but time to time I'll try to stop and explain.
+
+6:52 - Samantha Scaglione
+And I know that you all understand English much better than I can understand Korean. So I appreciate your patience with me. Okay, so with that, I think we can jump in. When we talk about Bits AI for autonomous operations, we invested in this area in detection and in investigation and remediation because we heard from our partners, from our customers, and from our own teams at Datadog how complex it is to keep our production systems healthy, how many pieces are involved to understanding what's happening when something goes wrong and what we need to understand to write it. There are a lot of ways that things can go wrong, and a lot of those ways start with our monitoring posture. Understanding when something requires our action requires first that we trust the signal that something is unhealthy. And that trust is eroded when we have flappy monitors that continue to recur for false positives or for issues that remediate themselves. It erodes when our alert doesn't help us pinpoint the systems in which the issue is actually rooted, or when we don't know where to start at all. And all of those challenges have consequences. We can lose the trust that we're trying to build with our clients, with our customers. We can fail to meet the SLAs that we've committed to. And of course, as we spend more time, that cuts into our margin. And so when we think about what it takes to effectively manage production systems, Datadog likes to frame this in this loop, our production operations loop, where we start by figuring out when something is wrong with detection, determining what the appropriate action is to take with decision and investigation, and then taking that action, validating, of course, that we see recovery. And we start the loop all over again. In BITS AI, with bits detection that we are going to dig into shortly, we are focused on identifying with high precision those issues that actually warrant action from your team. Beyond detection, our next step is, of course, figuring out the appropriate action to take, and that's where we can lean on BITS investigation. While I'll focus on detection since some of the team hasn't yet seen BITS investigation, I'll step in there just briefly. And when we talk about action, taking action can also be guided. Allows you to safely take action using BITS remediation, which is governed by guardrails. And that's a concept that I think you're going to hear more about as we talk about this whole loop in the context of infrastructure operations later in our conversation.
+
+9:52 - Patrick Lee
+So, yes, sorry, could you go back? Let me just briefly share with the team: I think this is important.
+
+10:08 - Patrick Lee
+could go action or take hiji kai je piziga tandana ya tani or tree indeo. So une jo one jo semanta pooj pugunen kazang wentu va k pitsi detection pugune or choiga je bo alimi domu money paisenga wana anime jo wutami paisenga men or jo baru wo chong ka ki tenga iga orionde otok Bodungo Edes or Ta Aleme or Surgeon Anado, John AIA Tom Taeyoung Yeso, or Chankago Samberjoguro, detection hash energy, it is a choir Chuangwe, Juma Arakuko, Kudami Jay or Punzogu, Punzogra Pubun, Kurigo Ku Talme, Ku Infrastructure Operation, Pubune Desol, Otok Uriga Chadungwai Heso, Iron Issued.
+
+11:23 - 알 수 없는 화자
+Amazing.
+
+11:23 - Samantha Scaglione
+Thank you so much.
+
+11:26 - Samantha Scaglione
+So, I promise I will only spend a couple more minutes in slides before we look at this live in the product. But first, I wanted to give an introduction to what bits detection is. When we announced bits detection at our Dash conference this year, we were announcing that we're focused and committed on autonomously detecting and qualifying, ensuring that. These circumstances actually require your attention, the issues that your team should take action on. What does that look like in practice? We know that monitoring has two failure modes. You can have gaps in your monitoring where your team is unable to identify in a timely manner when your systems or your client systems are degraded. Or we can have noise. And noise can come in two flavors. It can be alerts that fire that don't require action, or alerts that are duplicative of other symptoms. Now, on the noise side, if your team becomes overwhelmed with alerts that they don't trust, That erodes confidence and also distracts us when a true incident actually occurs. And so we are committed in bits detection to solving for both of those challenges. On the side of gaps, we provision critical monitoring autonomously. What that means is we scan your system or your client's systems in order to understand the surfaces that. Are impactful to business operations. Today, BITS detection is largely focused on service monitoring powered by application performance monitoring metrics. You'll hear from the BITS infrastructure operations team shortly on how they are managing autonomous detection and remediation on infrastructure components. But when we talk about this BITS detection and look at it in the product, you'll see how BITS is able to pick out critical services, look at the granularity of individual resource levels to identify the paths that are important to business operation, to calibrate our monitoring policies around the thresholds. That actually warrant attention based on historical telemetry and historical incident response, and continue to adapt over time based on the actions that your team takes in response to degradations. These are a lot of words that will make a lot more sense as we jump into the product to look at this live.
+
+14:15 - Patrick Lee
+And I'll start. Yeah. Thanks, Amanda. Let me just briefly share the important part.
+
+14:41 - Patrick Lee
+Please continue.
+
+14:43 - Samantha Scaglione
+Amazing. Thank you. Okay, so I am coming here in application performance monitoring to a service page to start. And as I jump into the monitors provisioned for this service, our monitors are a foundational unit in Datadog that tell us when our systems are unhealthy. And traditionally, as teams onboard to Datadog, they'll create monitors for the conditions that they know require response. They can create those manually, setting up, for example, a metric and a threshold that, when breached, warrants an alert. But what we constantly hear from the field and from our own teams is it's challenging to identify the appropriate threshold and to keep that current over time as traffic changes, as new services or new features are introduced. And so, what BITS detection does is provision these monitors autonomously based on our understanding of the system. We derive that understanding from historical telemetry, traffic patterns, our semantic understanding of the set of services in your environment, which we can derive not only from application performance monitoring data, but also from your own knowledge bases, from service metadata. That lives in our internal developer portal, informed by the integrations that you've provisioned. And we use all of this understanding to determine what are the critical surfaces to monitor. While we do not expect our users to review each of these critical surfaces that we identify, we do provide transparency in what we're monitoring and why we're monitoring it. And you can see here. Why we've chosen to monitor these critical endpoints for this particular service. If I jump into my alert, I think this is very important.
+
+16:48 - Patrick Lee
+Let me quickly share this with the team.
+
+17:51 - Patrick Lee
+Yes, continue.
+
+17:53 - Samantha Scaglione
+Amazing, thank you. And this is perfect. Before we dig into the alert, I'll mention here the first layer where we invite our users to provide feedback. So here we are deriving criticality, like I mentioned, from our understanding of your system. But sometimes there are nuances, organizational nuances that Datadog does not have visibility to, that you may have business context for on your client's behalf. And so we can interact. Here by marking new endpoints as critical, by removing the endpoints that Bits has marked critical, or by providing feedback in natural language via our Bits chat, which we can open up with that Ask Bits button up here or with Command or Control I.
+
+18:46 - Samantha Scaglione
+So throughout everything I'm about to show you, we can always provide feedback to bits and bits learns over time. It operates as a teammate to take into account the team's needs. Now, if I jump into the monitors for this specific service and what's currently alerting, I can see that managed by Bits AI indication on this monitor. This is not something that my team created. Bits created this on our behalf. We can also see the query based on observed behavior that Bits currently has active. Forgive our demo environment. You can see it's quite noisy, and so calibration is quite high here. But here, Bits defines our monitor in natural language, so it's easier for us to understand without having to know all of the specific monitor used. Syntax As I scroll down to my monitor message, I see that BITS describes the impact of this degradation and links supporting resources for us to use if this alert fires when we're troubleshooting. Now, this is what we call a managed monitor under the scope of BITS detection. This is one of the artifacts that BITS will provision on our behalf. To make sure that our team is aware when our system is degraded. But I mentioned that coverage is one side of the problem that we are solving with bits detection. The other side is noise. And we want to make sure that when we do alert, the team's action is truly required. And so the other component of bits detection is triage. For traditional monitors, when a monitor breaches a threshold, it emits an alert. And that alert notifies the team for response. But what bits detection does differently is route those threshold breaches first back to bits for triage. Bits is our first line of defense and our first responder. Bits determines when a threshold breach actually warrants an alert. And so it qualifies. Any monitor state transitions from these monitors that we manage or from any scope on which you enable bits detection. So you can provision, for example, bits detection on an operations channel for one of your clients, for one of your organizations. And what bits detection will do is watch that channel. Determine which monitor alerts actually require action and which can be safely dismissed. The reason why we do this is to make sure that you can easily prioritize the issues that truly require your attention. And we'll talk about how that can tie into autonomous investigation in a moment, but I'll pause there first. Any questions?
+
+21:47 - Patrick Lee
+I have one question. So, this is a managed monitor, and on the message template, what's happening, how to troubleshoot and react, are these also written by bits?
+
+22:00 - Samantha Scaglione
+Yes, this monitor message template is written by bits. It's configurable. So, if there are any organizational policies that I need to apply, if I wanted to, for example, add an SLA or links to additional resources, I can modify this, but this is written by bits. Okay.
+
+22:21 - Patrick Lee
+So I'm just assuming it knows and can do correlation between telemetries, and that's the links, hyperlinked on here. Absolutely.
+
+22:35 - Samantha Scaglione
+It looks for related telemetry and it actually learns from your response. So as your responders respond to an alert and navigate to specific telemetry, Bits knows to pull this in to assemble a better runbook for you over time. Yeah, let me share this with the team.
+
+23:55 - Patrick Lee
+Samantha, one question we have is it could be possible that customers already have similar monitor, like monitoring similar service or threshold. Does Bits know how to differentiate between them because so they don't overlap? Or what's the method in discovering them?
+
+24:16 - Samantha Scaglione
+great question so this is where we lean on triage we will still provision a monitor even if a similar metric is already monitored by the client because we recognize that our monitoring methodology may be slightly different but we do deduplication in our triage layer so I mentioned that bits detection does not emit an alert purely on a threshold being breached but rather on the determination that this instance of the alert is actionable. We route through to bits as an intermediary processor before notification, and that is our triage capability. As part of that triage, we check both for actionability and for redundancy, and that includes checking for redundancy with your self-managed monitors, those conditions that you've defined.
+
+25:07 - Patrick Lee
+Okay, so you might show this to us later, but I notice from what you're saying that this monitor itself doesn't have any recipient. And are you saying that there's a separate way of configuring alerts only from bits detection?
+
+25:26 - Samantha Scaglione
+Exactly. So and I'll mention, well, this is in preview. This is a UI that we are continuing to evolve. So it is not very pretty just yet. But if I jump into triage, for example, I can configure a triage rule that allows me to specify the destination for my alerts or optionally automatically trigger investigation on qualified alerts to make sure that when I'm notified and when BITS determines that an alert does truly require response. That I have a root cause ready as quickly as possible.
+
+26:07 - Patrick Lee
+I see. Yeah, let me share this with the team.
+
+26:57 - Patrick Lee
+Oh, yeah, sorry, sorry, we have uh continuing questions. Absolutely.
+
+27:18 - Patrick Lee
+So the first question is um the What's the difference between watchdog and existing watchdog monitors? Okay, first question.
+
+27:31 - Samantha Scaglione
+Twofold. One, watchdog monitors today are focused on anomalous behavior, behavior that deviates from the norm. Here in our bits managed monitors, we're focused on business impact because anomalous does not necessarily mean impactful to the business. Or warranting response. The second big difference is that we can influence bits managed monitors. Watchdog is Datadog's out-of-the-box machine learning model that operates consistently across any Datadog organization looking for anomalies. But Bits detection is bespoke to your organizational needs and influenced by the feedback that you provide. So when you say that behavior is expected or that there is some seasonality to consider, bits can adapt to that organizational nuance, whereas watchdog is limited in its configurability.
+
+28:33 - Patrick Lee
+Yeah, great.
+
+28:37 - Patrick Lee
+wonji borishin kundu yeka ge by semi tirimenin. Ke watchito chachen ije ezanchi e kamjiranangojo butle opton erona ulugua kapjagi pa singa handa kona and even wo ero yurina wu yurungoti kapi spiker chinda boran. Becauseang yanzang, kabojino ning tong isang yanzang wale je kamjirange watchitogi go.
+
+30:18 - Patrick Lee
+Yeah, so this is also a very interesting question. So, right now with Bits AI in general on chat, we can communicate in Korean. And it will respond to us in Korean, and that's really helpful. So, the question is: can we set the language so the present monitors like this or they can be local language support? So, because I mean, of course, the data.ui itself is English only, and we get that, but since this is AI specific, they're wondering if this can be configured in local language in Korean so it's easier for users to understand the monitor, what the monitors are.
+
+31:09 - Samantha Scaglione
+That is a great question and a great idea. I will definitely take it back to my team. Today, the monitors that we create are provisioned in English, but you're right about the extensibility of BitsChat. And what that means for the extensibility of our products. That's definitely something I'd like to look into, but I do not have a timeline for localized language support yet.
+
+31:57 - Patrick Lee
+So uh yeah, so the next question is right now on the on the template we have what's happening, how to travel to kind of template. So I think we can break down this into two questions. The first one is: is this default or can we influence on how the templates are going to be created? I think something similar to what we have in the incident post-mortem generating template. So users can configure what to be considered. In the monitor template? Can we influence them? Or will this be supported in the future? Great question.
+
+32:44 - Samantha Scaglione
+This is on our roadmap. Today, you can modify this message, but you cannot templatize it in the way that you can incident post-mortems. One roadmap item that we are pursuing in the near term is similar to our bits MD file. Which provides context for bits to use in how it configures its investigation results to allow users to provide context on monitor governance and policies in monitor message formatting. I think this actually ties really well to the last question on localized language support. I think we should be able to provide instructions in a similar way. This is on a roadmap, but again, I apologize, I don't have a timeline to share just yet. It's okay.
+
+33:31 - Patrick Lee
+Yeah, let me just quickly share this as well.
+
+34:18 - Patrick Lee
+Yeah, I think I think uh the the audience agrees that if we can influence the template and anything, localization onto this. I think most of us now frequently using AIs would agree that this would be the proper method to control them. All good?
+
+34:39 - 알 수 없는 화자
+Amazing.
+
+34:42 - Samantha Scaglione
+And I think this may be Yes, of course.
+
+34:46 - 알 수 없는 화자
+Yeah.
+
+35:03 - Patrick Lee
+So so right now the coverage for bits detection are included. I think they follow our APM. It's HTTP and gRPC. Do we have further roadmap on expanding into other protocols, or anything to share on that? Yes, absolutely.
+
+35:27 - Samantha Scaglione
+So our focus with BITS detection is expanding coverage, not just to additional protocols, but also to additional entity types. So actually, next up for our expansion in monitoring is front-end monitoring on digital experience monitoring data, including real user monitoring. In parallel, we're pursuing additional operation types. I believe Envoy is next up on the service monitoring. Side, but we're listening to feedback from our design partners to see what they need to cover the services that matter to them.
+
+37:26 - Patrick Lee
+So just the question is: We don't have a limitation on the platform on how many monitors we have on the user-created monitors. Will we have a limitation on how many monitors that bits detection can create? Or will there be any rate limit or limits depending on the service? Type of questions. Great question.
+
+37:52 - Samantha Scaglione
+So, bits detection actually provisions a special kind of monitor that Datadog recognizes as Datadog managed. So we are independent of any limits on monitor provisioning for specific monitor types. No, there is no rate limit to consider on the monitor count side. That being said, for our preview period, as we enable design partners, we do have a limit of the number of services covered during preview. We limit to up to a hundred critical services.
+
+39:26 - Patrick Lee
+So Samantha, I think we're wrapping up the questions.
+
+39:32 - Patrick Lee
+Do you have additional bits detection related features that you are planning to showing?
+
+39:39 - Samantha Scaglione
+I think this covers just about everything I was hoping to on the bits detection side. If we want to briefly look at investigations, we can, or we can transition right over to infrastructure operations.
+
+39:51 - Patrick Lee
+I think since some members here are not aware of investigation, would you like to show us briefly on what that is so we can understand?
+
+40:04 - 알 수 없는 화자
+Absolutely.
+
+40:05 - Samantha Scaglione
+So we started in this loop and we talked about how Datadog is here to help you remediate issues faster when they occur and when they require intervention. And we just spent most of our time at the top of this loop talking about detection, talking about how we understand when our response is required in the first place. But what we heard from the field is that determining what action is required is usually the long pull in our time to recover. And so, Datadog has invested heavily in supporting investigations to determine that appropriate next action and help you safely take it. And that's where BIT supports investigation. So, we jumped over from our BITS detection into BITS investigation here. And I'm going to just pull up a completed investigation for us to look at. At. Just like we saw in our detection, part of what we really value in BITS is transparency. And so when I open up an investigation here, I can see that when this monitor alert trigger, BITS began to investigate and pursued a set of hypotheses. I can drill into any one of these hypotheses to understand how BITS reasoned what is truly happening, where this issue is truly rooted, and how it understood that using the specific tool calls it made. If I want to dig in deeper, I can. In this case, I can see that Bits isn't even limited to the data in Datadog. It's using the integrations that we've provisioned. In this case, our GitHub source code integration to look at how our error codes were provisioned. I can review related telemetry like my trace spans and make sure that I agree with the assessment that Bits made. And I can trace this path through. Hypotheses that Bits validated or rejected. This helps me build trust, but really, what I care about in the context of the investigation is the root cause that BITS reached. And so, as I scroll down to the bottom, yes, yeah.
+
+42:21 - 알 수 없는 화자
+Let me just, I think these are important. Let me just make sure that people get it.
+
+43:22 - Patrick Lee
+Amazing.
+
+43:24 - Samantha Scaglione
+So when we trust that BITS has reached an appropriate conclusion, what we really care about is understanding what that conclusion is, what actually happened. And so I can dig into the full conclusion here. I'm collapse over my chat panel so we could see this a little clearer. Bits puts together root cause here saying that there was a payment rejection gate. Along with a timeline of impact, exactly what changes were introduced when, and how they were reflected in the behavior that we observed in our system. And BITS does not stop there with the root cause reached. It goes on to prescribe the appropriate next steps for us to take in order to remediate. And here in the example that I clicked into, this includes a code fix. But as you'll hear from the infrastructure operations teams, we also suggest sets of fixes associated with infrastructure provisioning actions. We can suggest a set of steps or use, for example, our private action runner, which allows you to take action in your own private environments. Via our action platform connections. So now I think we've walked through the whole loop from detection through investigation and remediation. Yeah, awesome.
+
+44:51 - Patrick Lee
+Let me translate this part as well.
+
+45:51 - Patrick Lee
+Karin is a I said, Shong Kongurpa, do is a wo Igono veil so Lagohamenzo, yegirashi ku kilguge yuhamene solin the petazi banderoso, the cheturashi da and pushki kukaz yogika jiga, the detection, investigation, tuven, or sugar, trustan. She yogika jiga is a Icha so you got community tobuni Kasi Chone Kunguma Singona or Tutimu Bazimagi Sikayo in Ton Tuna AI from the Tutunga Chi U T F a Poo Decorni the infurat Hagopter et al Tuthi Ngi et is a community.
+
+50:14 - Patrick Lee
+Samantha, I think this is, I'm not sure if you notice anyone from the product team. This is a general question in using bits. Do we need do we need like the learning and learning time for Bits AI to work in any, any bits, in any telemetry.
+
+50:41 - Samantha Scaglione
+That's a great question. For bits detection specifically, we do use historical telemetry over a learning period of a week in order to actually alert off of that monitor. So we have a week-long training period to calibrate the appropriate threshold. That week can be based on historical telemetry, but for newly introduced services, we do wait that week. Before notifying. That's on bits detection. On bits investigation and remediation, there is no required training period. Bits investigation can be used solely based on Datadog's understanding of your system, the telemetry at that point in time. It does improve in precision over time as it learns your organizational nuances, particularly. If there is customization in the way that you configure your tags to relate telemetry. If you use Datadog's unified service tagging and you do tag everything with service and environment, it's easier for Bits to piece that context together. But in the absence of standardized data quality, Bits does take some time to listen to you and to learn how your team. Would go about investigating an incident to do so in the same way.
+
+52:07 - Patrick Lee
+So, Utiligi Vietname, the Chilo Choi, Peterborough Chuchiman Ku Uri Uri Tuji Gate Ban Panguru Keso Keso, Pajone Ahanda Bagu, Yeju Tampa, Samantha?
+
+52:44 - Whiwon Cho
+Yes. Yeah, I have one question. So since specification automatically creates and manage modern. So, does it also have some mechanism to automatically remove monitors that haven't triggered any alerts for a certain period of time? So, for example, if that managed monitor has an alert for several months, will be considered unnecessary and remove it? Great question.
+
+53:11 - Samantha Scaglione
+So, yes, BITS will clean up managed monitors that it thinks are no longer needed. It does not. Exclusively consider the frequency of alerting in that consideration because it does provision doomsday monitors, the monitors that we hope will never fire, but would fire if something really, really bad happens. It will deprovision monitors if, for example, there is no detected traffic on a service for some amount of time. I believe that is also a week. Oh, okay.
+
+53:44 - Whiwon Cho
+Great question. I have one follow-up question. So or if I added a monitor that was automatically created by base detection, for example, if I translate the monitor name or message into Korean or if I change the service scope, will still remain a busmas monitor and continue to manage by the bit detection? Great question.
+
+54:10 - Samantha Scaglione
+Again, we actually enforce limits on the fields that you are permitted to edit in the UI. So you are allowed to edit your monitor message body and your monitor tags. Today, not permitted to edit the monitor title, but I think that's a great idea and something that the team can consider. Beyond those fields, if you want to edit, for example, the threshold. Or the scope of the query. You can either talk in natural language to BitsChat to provide the feedback saying this is too strict or there's a different scope that I want to consider and Bits will adjust that for you. Or you can clone the monitor to take a snapshot of it at that point in time and edit that monitor to make it your own. But once you do edit that query or threshold, it does become a self-managed monitor branching out from Bits.
+
+55:05 - Whiwon Cho
+Perfect, thank you.
+
+55:10 - Whiwon Cho
+Awesome.
+
+55:12 - Samantha Scaglione
+Thank you so, so much for your time. If there aren't any other questions, I will hand it off to our BITS infrastructure operations team.
+
+55:26 - Patrick Lee
+Thank you. Thank you so much, Samantha. You were just talking around questions. Thank you so much for your demo and time. We'll get back if we have any questions. Have a wonderful night. Thanks. Thank you.
+
+55:44 - Patrick Lee
+Hi, Jace. Sorry for letting you wait for longer than anticipated. Welcome. And could you quickly introduce yourself? Sure. And no problem at all. Hi, everyone.
+
+55:59 - Jace Harker
+I'm Jace. I'm one of the product managers working on Bits Infrastructure Operations. And I've been at Datadog for three years. And yeah, I'm excited to talk with you today.
+
+56:13 - 알 수 없는 화자
+Awesome.
+
+56:16 - Patrick Lee
+You're aware of the context of the audience, right? Yes, I think so.
+
+56:23 - Jace Harker
+So we've a little bit before the meeting. So, I think I know a little bit about your infrastructure. And my understanding is that you're managing this primarily the managed services kind of team, correct me if I'm wrong, and that you're managing something like 4,000 hosts. And so, you're interested in, my understanding is, you know, how can we look at these hosts, detect when something's going wrong, and quickly fix it? And in our conversation before the call, I noticed that there's about six particular scenarios that you're interested in. Like, for example, detecting zombie processes, disk full memory leaks, that kind of thing. So am I kind of in the right in the right area here?
+
+57:18 - 알 수 없는 화자
+Yes. Does that sound about right? Yes. Great. Okay, excellent.
+
+57:24 - Jace Harker
+So if it's okay with you, what I'll do is I'll just lead off with a little bit of a demo of what Bits InfraOps looks like and how it works. And then we can talk a little bit more about your specific use cases and what questions you have. Does that sound good?
+
+57:42 - 알 수 없는 화자
+Yeah.
+
+57:43 - Jace Harker
+Great. Okay, so let me pull up my screen here to demo.
+
+57:51 - Jace Harker
+And I think I'm going to just jump the demo here. So, this is pretty much what Bits InfraOps look like, Can you see my screen okay? Yes.
+
+58:01 - Patrick Lee
+Okay, great.
+
+58:04 - Jace Harker
+going on here is you can basically see that Bits InfraOps. So some of the things that Samantha was talking about, we do something similar here. It doesn't work quite the same way because our focus is a little bit different. The goal of Bits InfraOps is really to be your frontline responder when there's an infrastructure issue specifically. So we're looking to identify common infrastructure issues and quickly fix them. To prevent the system from going down. And then sometimes also do a follow-up where we analyze and find the root cause of the issue and fix that. So, one example could be if a host disk space is filling up with logs, then and it's getting to the point where it's going to be so full that the host might fail, we would go in and actually. Those logs. We would investigate, figure out which logs are filling up the disk, take action to truncate those logs to free up disk space so that the disk doesn't go down. And then we'll also do some investigation, figure out maybe a process is logging, is not configured to rotate. So log rotate is not configured on a host. So we would say, okay, let's go ahead and create a configuration or change a configuration. Maybe it's not rotating logs frequently enough. And make that change so that in the future this issue doesn't happen again. So that's an example of the kind of thing that we're looking to do here is really detect when there's an infrastructure issue and then go ahead and fix it. So what you see here on the screen is first of all kind of a workflow that's kind of illustrating us detecting some issues, investigating them, figuring out what the root cause is and proposing fixes that are then ready for approval and then actually being remediated, being fixed. So these are just some examples and I'll walk you through the details in a minute

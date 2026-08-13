@@ -80,6 +80,30 @@ BIO 1차 프리뷰가 Fargate 대상이므로 `aws_ecs_cluster` + Fargate `aws_e
 ### 자동조치 대상 — `autoscaling.tf`
 CPU Spike → `SetDesiredCapacity` 시나리오 검증용 Launch Template + ASG. `enable_autoscaling_target = false`로 끌 수 있다.
 
+### ⑤ Chaos playground 앱 — `chaos-app.tf`, `scripts/chaos-app.py`
+
+EC2 부팅 시 systemd 로 자동 배포되는 Flask 앱. 두 층의 엔드포인트를 노출한다.
+
+- **가짜 비즈니스 엔드포인트** (`/api/products`, `/api/orders`, `/api/checkout` 등) — Bits Detection 이 학습할 정상 트래픽 프로파일을 만들기 위한 표면. latency·에러율이 엔드포인트별로 다르게 설계됨.
+- **장애 주입 엔드포인트** (`/chaos/leak-memory`, `/chaos/fill-disk`, `/chaos/cpu-burn`, `/chaos/fork-orphan`) — 시나리오 #1~#4 를 실제로 유발.
+- 관찰용: `/health`, `/chaos/stats`.
+
+### ⑥ Datadog Agent + APM 계측 — `scripts/user_data.sh.tpl`
+
+Bits Detection 은 APM 데이터를 재료로 삼기 때문에 계측이 전제 조건이다.
+
+- `enable_datadog_agent = true` + `datadog_api_key = "..."` 를 넣고 apply 하면 부팅 시 공식 install script 로 Agent 를 설치하고, ddtrace-run 으로 앱을 감싸 APM trace 를 자동 전송한다.
+- `DD_SERVICE` / `DD_ENV` / `DD_VERSION` 은 Unified Service Tagging 표준을 따른다.
+- API key 미확보 시 `enable_datadog_agent = false` 로 두면 앱만 실행되고 계측은 스킵된다.
+
+### ⑦ 트래픽 제너레이터 — `scripts/user_data.sh.tpl` (systemd `chaos-traffic.service`)
+
+같은 EC2 에 시간대별로 다른 RPS 로 `localhost:8080/api/*` 를 두들기는 bash 루프를 배포한다.
+
+- 야간 1x → 주간 4x → 저녁 2x (UTC 기준) 로 시즈널리티를 만든다.
+- `enable_traffic_generator = false` 로 끌 수 있다.
+- 이 트래픽이 Bits Detection 의 1주 학습 재료가 된다.
+
 ---
 
 ## 3. 파일 구성 (`terraform/`)
@@ -95,7 +119,10 @@ CPU Spike → `SetDesiredCapacity` 시나리오 검증용 Launch Template + ASG.
 | `iam_datadog.tf` | 역할2: Datadog 크로스계정 Role |
 | `ec2.tf` | AL2023 EC2 |
 | `autoscaling.tf` | 자동조치 대상 ASG |
-| `outputs.tf` | Role ARN, 인스턴스 ID 등 |
+| `chaos-app.tf` | chaos playground 앱 배포 로컬 |
+| `scripts/chaos-app.py` | Flask 앱 (비즈니스 + chaos 엔드포인트) |
+| `scripts/user_data.sh.tpl` | EC2 부팅 스크립트 (앱 + Agent + traffic-gen) |
+| `outputs.tf` | Role ARN, 인스턴스 ID, chaos_app_endpoints, DD Agent 상태 등 |
 
 ### 적용 절차
 ```bash

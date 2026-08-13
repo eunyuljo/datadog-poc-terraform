@@ -20,6 +20,7 @@ import os              # 프로세스 kill, 파일 삭제, 환경변수 접근
 import time            # 타임스탬프, CPU burn 종료 시각 계산
 import threading       # CPU burn 백그라운드 스레드
 import subprocess      # fork-orphan 자식 프로세스 spawn
+import random          # 비즈니스 엔드포인트 latency/에러 시뮬레이션
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
@@ -50,6 +51,91 @@ disk_files = []     # #2 생성한 임시 파일 경로 목록.
 @app.route("/health")
 def health():
     return jsonify(status="ok")
+
+
+# -----------------------------------------------------------------------------
+# 가짜 비즈니스 엔드포인트 — Bits Detection 학습용 정상 트래픽 프로파일
+# -----------------------------------------------------------------------------
+# 이 엔드포인트들은 "실제 웹서비스처럼 보이는 트래픽 프로파일"을 만들기 위해 존재.
+# Bits Detection 은 APM 데이터의 traffic pattern·latency 분포·error rate 로
+# critical endpoint 를 식별하고 임계값을 자동 캘리브레이션한다. 즉 정상 상태의
+# 다양성이 학습 재료가 됨.
+#
+# 엔드포인트별 특성을 의도적으로 다르게 설계:
+#   /api/products      — 가벼운 조회. 낮은 latency, 낮은 error. 캐싱된 read-heavy 흉내.
+#   /api/products/<id> — 단건 조회. products 와 유사하지만 id 유효성 검사 포함.
+#   /api/orders        — 중간 latency. DB 쿼리 흉내.
+#   /api/orders/<id>   — 단건 조회. 존재하지 않는 id 에 대해 404.
+#   /api/checkout      — 무거운 처리. 높은 latency + 큰 variance. 결제 플로우 흉내.
+#
+# 각 엔드포인트는 순수 in-memory 로 동작 — DB/외부호출 없음. Bits 관점에서 중요한 건
+# APM 이 관찰하는 표면(HTTP method, path, latency, status code) 이지 내부 진위가 아님.
+_PRODUCT_CATALOG = [
+    {"id": i, "name": f"product-{i}", "price": 1000 + (i * 137) % 90000}
+    for i in range(1, 51)
+]
+
+def _simulate_latency(base_ms: int, jitter_ms: int):
+    """base + [0, jitter) 밀리초 sleep. p50 근처는 base 근방, 가끔 base+jitter 근처."""
+    delay_s = (base_ms + random.random() * jitter_ms) / 1000.0
+    time.sleep(delay_s)
+
+def _maybe_error(rate: float):
+    """rate 확률로 True 반환. 500 응답 트리거용."""
+    return random.random() < rate
+
+
+@app.route("/api/products")
+def api_list_products():
+    # p50 ~ 40ms, p99 ~ 120ms. 낮은 에러율 (0.5%).
+    _simulate_latency(base_ms=30, jitter_ms=100)
+    if _maybe_error(0.005):
+        return jsonify(error="upstream unavailable"), 500
+    return jsonify(products=_PRODUCT_CATALOG)
+
+
+@app.route("/api/products/<int:pid>")
+def api_get_product(pid: int):
+    _simulate_latency(base_ms=20, jitter_ms=60)
+    if pid < 1 or pid > len(_PRODUCT_CATALOG):
+        return jsonify(error="product not found"), 404
+    return jsonify(product=_PRODUCT_CATALOG[pid - 1])
+
+
+@app.route("/api/orders")
+def api_list_orders():
+    # p50 ~ 120ms, p99 ~ 400ms. DB 쿼리 시뮬레이션 — 살짝 무거움.
+    _simulate_latency(base_ms=80, jitter_ms=350)
+    if _maybe_error(0.01):
+        return jsonify(error="database timeout"), 500
+    # 결과는 늘 동일한 stub. 진짜 DB 아님.
+    return jsonify(orders=[
+        {"id": 1001, "product_id": 3, "status": "shipped"},
+        {"id": 1002, "product_id": 12, "status": "pending"},
+        {"id": 1003, "product_id": 27, "status": "delivered"},
+    ])
+
+
+@app.route("/api/orders/<int:oid>")
+def api_get_order(oid: int):
+    _simulate_latency(base_ms=60, jitter_ms=200)
+    # 짝수 id 만 존재하는 것처럼 시뮬레이션 — 404 트래픽 자연스럽게 발생.
+    if oid % 2 != 0:
+        return jsonify(error="order not found"), 404
+    if _maybe_error(0.01):
+        return jsonify(error="database error"), 500
+    return jsonify(order={"id": oid, "status": "shipped"})
+
+
+@app.route("/api/checkout", methods=["POST"])
+def api_checkout():
+    # p50 ~ 250ms, p99 ~ 900ms. 결제 플로우 — 크게 흔들리는 endpoint.
+    # error rate 도 다른 것보다 높음 (2%) — payment gateway 실패 흉내.
+    _simulate_latency(base_ms=150, jitter_ms=800)
+    if _maybe_error(0.02):
+        return jsonify(error="payment gateway declined"), 500
+    order_id = 2000 + int(time.time()) % 1000
+    return jsonify(order_id=order_id, status="confirmed")
 
 
 # -----------------------------------------------------------------------------

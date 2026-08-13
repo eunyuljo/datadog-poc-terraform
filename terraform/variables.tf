@@ -118,3 +118,65 @@ variable "chaos_app_port" {
   type        = number
   default     = 8080
 }
+
+# -------------------------------------------------------------------
+# Datadog Agent + APM 계측
+# -------------------------------------------------------------------
+# Bits Detection 은 APM 데이터를 재료로 삼는다. 따라서 chaos-app 을
+# Datadog "서비스" 로 인식시키려면 Agent 설치 + ddtrace-run 계측이 필요하다.
+#
+# API key 미확보 시(예: Datadog 회신 대기 중) 는 enable_datadog_agent=false
+# 로 두면 인프라·앱은 그대로 돌아가고 Agent 만 빠진다.
+variable "enable_datadog_agent" {
+  description = "EC2 부팅 시 Datadog Agent 설치 + chaos-app APM 계측 활성화 여부. false 면 앱만 실행."
+  type        = bool
+  default     = false
+}
+
+variable "datadog_api_key" {
+  description = "Datadog API Key. enable_datadog_agent=true 일 때만 사용. terraform.tfvars 에 넣고 커밋 금지."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "datadog_site" {
+  description = "Datadog 사이트 (예: datadoghq.com, us5.datadoghq.com, datadoghq.eu, ap1.datadoghq.com)"
+  type        = string
+  default     = "datadoghq.com"
+}
+
+variable "dd_service" {
+  description = "APM 서비스 이름. Bits Detection 이 이 이름으로 서비스를 식별."
+  type        = string
+  default     = "chaos-app"
+}
+
+variable "dd_env" {
+  description = "APM 환경 태그 (Unified Service Tagging)"
+  type        = string
+  default     = "poc"
+}
+
+variable "dd_version" {
+  description = "APM 버전 태그 (Unified Service Tagging). 배포 트래킹에 사용."
+  type        = string
+  default     = "0.1.0"
+}
+
+# -------------------------------------------------------------------
+# 트래픽 제너레이터 (Bits Detection 학습용 정상 트래픽)
+# -------------------------------------------------------------------
+# chaos-app 과 같은 EC2 에 systemd 유닛으로 배포. localhost:8080/api/* 를
+# 시간대별 다른 빈도로 호출해 realistic 한 baseline 트래픽 프로파일을 만든다.
+variable "enable_traffic_generator" {
+  description = "chaos-app 의 /api/* 엔드포인트를 지속 호출하는 트래픽 제너레이터 활성화 여부"
+  type        = bool
+  default     = true
+}
+
+variable "traffic_generator_base_rps" {
+  description = "트래픽 제너레이터의 기준 요청/초 (야간 최저치). 주간엔 최대 4배까지 상승."
+  type        = number
+  default     = 2
+}
