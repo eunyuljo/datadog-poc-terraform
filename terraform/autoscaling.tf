@@ -33,11 +33,16 @@ resource "aws_launch_template" "poc" {
 }
 
 resource "aws_autoscaling_group" "poc" {
-  count               = var.enable_autoscaling_target ? 1 : 0
-  name                = "${var.project_name}-asg"
-  min_size            = 1
+  count = var.enable_autoscaling_target ? 1 : 0
+  name  = "${var.project_name}-asg"
+  # desired=2 는 fleet 이질성 재료를 확보하기 위한 최소치.
+  # Bits Detection / BIO 관점에서 "여러 인스턴스 중 하나만 이상" 시나리오는
+  # 동일 서비스가 최소 2대 이상에서 상시 돌아야 재현 가능하다.
+  # max=4 는 CPU Spike -> SetDesiredCapacity 자동조치 (시나리오 #4) 시
+  # 여유 있게 스케일 아웃할 헤드룸.
+  min_size            = 2
   max_size            = 4
-  desired_capacity    = 1
+  desired_capacity    = 2
   vpc_zone_identifier = aws_subnet.private[*].id
 
   launch_template {

@@ -358,7 +358,172 @@ curl -X POST http://localhost:8080/chaos/reset
 
 이 단계에서 EC2 콘솔이나 SSH 없이도 **각 시나리오가 실제로 유발되는지** 확인 가능. Datadog 은 아직 없어도 됨.
 
-### 4.4 트러블슈팅
+### 4.4 Baseline traffic 관찰
+
+chaos-app 이 뜬 뒤 **같은 EC2 안에서** `chaos-traffic.service` 가 자동 기동한다 (`enable_traffic_generator=true` 기본). 이 서비스는 시간대별(UTC) 배수로 `/api/*` 를 지속 호출하며, **Bits Detection 이 학습할 "정상 트래픽 프로파일"** 을 만든다. 실증 관점에서 §4.3 의 chaos 유발은 이 baseline 위에 얹혔을 때 비로소 "정상 대비 튀는 이상" 이 된다.
+
+**시간대별 RPS 배수** (`user_data.sh.tpl` 참조)
+
+| UTC 시간대 | 배수 | KST 환산 |
+|---|---|---|
+| 00–06 (야간) | 1x | 09–15 |
+| 07–09 (새벽) | 2x | 16–18 |
+| 10–18 (주간) | 4x | 19–03 (다음날) |
+| 19–23 (저녁) | 2x | 04–08 (다음날) |
+
+`traffic_generator_base_rps` (기본 2) × 배수 = 실제 RPS. 기본 설정 기준 야간 2 rps, 주간 8 rps 근처.
+
+**확인 방법** (EC2 셸에서 — §4.2 처럼 SSM 셸 세션으로 접속)
+```bash
+# 서비스 상태
+sudo systemctl status chaos-traffic
+
+# 실시간 로그 — curl 실행 로그가 stderr 로 나옴
+sudo journalctl -u chaos-traffic -f
+
+# 앱 관점 상태 (leaked_mb, orphan_pids 등)
+curl -s http://localhost:8080/chaos/stats
+```
+
+**시간대 배수 반영 확인**
+```bash
+date -u                                                    # UTC 확인
+sudo journalctl -u chaos-traffic --since '1 minute ago' | wc -l
+# 대략 (BASE_RPS × 배수 × 60) 근처 값이면 정상
+```
+
+> [!important] baseline 을 미리 흘리고 chaos 를 유발할 것
+> Bits Detection 은 정상 트래픽의 **분포** 를 학습해 이상을 잡는다. `terraform apply` 직후 곧바로 chaos 를 유발하면 baseline 이 얇아 AI 학습 재료가 부족하다. 유발 전 **최소 하루 이상 baseline** 을 흘려야 실증 대상이 된다.
+
+### 4.5 ASG 다중 노드 검증
+
+`enable_autoscaling_target=true` + `desired_capacity=2` (autoscaling.tf) 로 **상시 2 노드** 가 유지된다. "동일 서비스가 여러 인스턴스에 있음" 이라는 조건이 fleet 이질성 시나리오(§4.6) 의 재료.
+
+**노드 목록**
+```bash
+aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=ddog-poc-asg-node" \
+            "Name=instance-state-name,Values=running" \
+  --query 'Reservations[].Instances[].[InstanceId,PrivateIpAddress,AvailabilityZone]' \
+  --output table
+```
+
+**각 노드에 chaos-app + traffic-gen 이 살아있는지**
+```bash
+for id in $(aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=ddog-poc-asg-node" \
+            "Name=instance-state-name,Values=running" \
+  --query 'Reservations[].Instances[].InstanceId' --output text); do
+  echo "=== $id ==="
+  CMD_ID=$(aws ssm send-command --instance-ids "$id" \
+    --document-name AWS-RunShellScript \
+    --parameters 'commands=["systemctl is-active chaos-app chaos-traffic","curl -s http://127.0.0.1:8080/health"]' \
+    --query 'Command.CommandId' --output text)
+  sleep 3
+  aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$id" \
+    --query 'StandardOutputContent' --output text
+done
+```
+
+기대 결과: 각 노드가 `active`, `active`, `{"status":"ok"}` 를 반환.
+
+> [!note] 단독 `aws_instance.poc` 는 그대로 유지
+> `instance_count=1` 인 단독 EC2 는 user_data 반복 실험 편의(예: `terraform apply -replace='aws_instance.poc[0]'`)를 위해 유지된다. ASG 노드 2대 + 단독 노드 1대 = 총 3대. baseline traffic 도 세 노드 모두에서 각자 돌아간다.
+
+### 4.6 Fleet 이질성 실습
+
+"**여러 노드 중 하나만 이상**" 을 재현해 AI 판단의 신뢰성을 검증하는 자리 ([[PoC 시나리오 후보 수집]] §2.2 ② "다중 인스턴스 중 하나만 이상"). 실제 운영에서 매우 흔하지만, 임계값 기반 룰로는 "노드 A 만 3GB 사용, 노드 B 는 400MB" 처럼 host 별 분포를 비교해야 잡히기 때문에 AI 큐레이션의 강점이 드러난다.
+
+**절차**: 노드 A 만 leak-memory 유발, 노드 B 는 baseline 만.
+
+```bash
+# 1. ASG 노드 ID 두 개 확보
+IDS=($(aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=ddog-poc-asg-node" \
+            "Name=instance-state-name,Values=running" \
+  --query 'Reservations[].Instances[].InstanceId' --output text))
+NODE_A="${IDS[0]}"
+NODE_B="${IDS[1]}"
+echo "leak on $NODE_A / baseline on $NODE_B"
+
+# 2. 노드 A 에만 200MB × 5 회 = 1GB leak
+aws ssm send-command --instance-ids "$NODE_A" \
+  --document-name AWS-RunShellScript \
+  --parameters 'commands=["for i in 1 2 3 4 5; do curl -s -X POST http://127.0.0.1:8080/chaos/leak-memory?mb=200; done"]'
+
+# 3. 두 노드에서 메모리 상태 비교 (2-3분 뒤)
+for id in "$NODE_A" "$NODE_B"; do
+  echo "=== $id ==="
+  CMD_ID=$(aws ssm send-command --instance-ids "$id" \
+    --document-name AWS-RunShellScript \
+    --parameters 'commands=["free -h","ps -o pid,rss,comm -C python"]' \
+    --query 'Command.CommandId' --output text)
+  sleep 3
+  aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$id" \
+    --query 'StandardOutputContent' --output text
+done
+```
+
+**관찰 지점**
+- 노드 A python RSS 가 1GB 근방, 노드 B 는 30MB 근방 → 뚜렷한 편차
+- Datadog Agent 활성화(§4.7) 상태라면 **Host Map** 에서 색상으로 즉시 구분됨
+- APM latency P95 는 leak 자체로 크게 안 튐 (Python GC 개입 시점부터 튐) → **Bits Detection 이 host 축 이상을 잡는지** 실증 자리
+
+**정리**
+```bash
+# 노드 A 에서만 reset (chaos-app 재시작 없이 메모리 해제)
+aws ssm send-command --instance-ids "$NODE_A" \
+  --document-name AWS-RunShellScript \
+  --parameters 'commands=["curl -s -X POST http://127.0.0.1:8080/chaos/reset"]'
+```
+
+> [!tip] 다른 이질성 조합
+> - 노드 A 만 `fill-disk` — 디스크 사용률 편차
+> - 노드 A 만 `cpu-burn` — CPU 편차 (이건 ASG SetDesiredCapacity 스케일 아웃 트리거도 됨 — 시나리오 #4)
+> - 노드 A 는 정상, 노드 B 에 배포 이슈 시뮬 (`systemctl stop chaos-app` 로 down) — "일부 노드만 down"
+
+### 4.7 Datadog Agent 활성화 절차
+
+Datadog Agent 설치 + `ddtrace-run` APM 계측 로직은 **user_data.sh.tpl 에 이미 들어가 있고** `enable_datadog_agent` 토글로 on/off 된다 (기본 off). API key 확보 후 활성화 절차:
+
+**1. tfvars 갱신**
+```hcl
+# terraform.tfvars
+enable_datadog_agent = true
+datadog_api_key      = "abcd...1234"          # 실제 값. .gitignore 되어있음 (커밋 금지)
+datadog_site         = "ap1.datadoghq.com"    # 조직 사이트에 맞게
+dd_service           = "chaos-app"
+dd_env               = "poc"
+dd_version           = "0.1.0"
+```
+
+**2. 인스턴스 재프로비저닝**
+user_data 변경만으로는 EC2 replace 가 안 일어남 (§4.8 트러블슈팅 E 참조). 명시적 강제:
+```bash
+# 단독 EC2 (첫 노드만 예시)
+terraform apply -replace='aws_instance.poc[0]'
+
+# ASG 노드는 instance refresh 로 순차 교체
+aws autoscaling start-instance-refresh \
+  --auto-scaling-group-name ddog-poc-asg
+```
+
+**3. Agent 상태 확인** (EC2 셸에서)
+```bash
+sudo datadog-agent status | head -80
+# 하단 APM Agent 섹션에 chaos-app 트래픽 카운터가 올라와야 함
+```
+
+**4. Datadog UI 에서 확인**
+- **APM > Service Catalog** : `chaos-app` 등장, `env:poc` `version:0.1.0` 태그
+- **Infrastructure > Host Map** : ASG 노드 2대 + 단독 노드 1대 등장. 태그 `Name:ddog-poc-asg-node` 로 그루핑
+- **APM > Traces** : `/api/products`, `/api/orders`, `/api/checkout` 트레이스 유입. baseline traffic 가 하루 이상 흘렀다면 latency 분포가 이미 잡혀 있음
+- **APM > Deployment Tracking** : `version` 태그가 배포 축으로 자동 인식
+
+> [!warning] API key 평문 취급
+> `terraform.tfvars` 에 API key 를 평문으로 저장하는 상태는 PoC 편의를 위한 것. tfvars 는 `.gitignore` 로 커밋 방지되지만 로컬 파일이라 여전히 노출 리스크가 있음. 프로덕션 이전 시 **SSM Parameter Store** 또는 **AWS Secrets Manager** 로 이관 필요 (`user_data.sh.tpl` 코멘트 참조).
+
+### 4.8 트러블슈팅
 
 배포 초기에 부딪히기 쉬운 문제와 대응.
 
@@ -398,7 +563,7 @@ terraform apply -replace='aws_instance.poc[0]'
 
 EC2 가 아직 SSM 에 등록되지 않음. 부팅 후 30초~1분 대기. `enable_ssm_endpoints=true` (기본) 라면 프라이빗 서브넷에서도 정상 등록되어야 함.
 
-### 4.5 정리
+### 4.9 정리
 
 데모/실험 종료 후:
 
@@ -414,20 +579,19 @@ NAT Gateway 는 시간당 과금이라 놀리지 말 것.
 
 이 실험 무대 위에 다음을 얹으면 **감지·조치 폐루프 검증** 이 가능해진다. 미팅 이후 순차 진행 예정.
 
-### 5.1 Datadog Agent 설치 (EC2 자동화)
-- `ec2.tf` 의 user_data 에 Datadog Agent 원라이너 삽입 (또는 SSM Document 로 분리)
-- 변수 `datadog_api_key`, `datadog_site` 신설
-- Agent 가 인프라 지표 자동 수집 → 콘솔 관측 가능
+### 5.1 Datadog Agent + APM 계측 — **이미 코드에 반영됨** (§4.7 참조)
 
-### 5.2 APM 계측 (Bits Detection 준비)
-- chaos-app.py 에 `ddtrace` 데코레이터 부착
-- APM 트레이스 수집 → Bits Detection 활성화 시 서비스 커버리지 대상
+원래 이 §5.1·§5.2 는 "다음 라운드에서 붙일 것" 이었지만, `user_data.sh.tpl` 에 Datadog Agent 설치 + `ddtrace-run` APM 계측 로직이 이미 들어가 있다. `enable_datadog_agent` 토글로 on/off 되며, API key 확보 후 tfvars flip 만 하면 즉시 계측 시작. 상세 절차는 **§4.7 Datadog Agent 활성화 절차** 참조.
 
-### 5.3 Monitor / Workflow 정의
+- Unified Service Tagging (`dd_service` / `dd_env` / `dd_version`) 는 변수로 노출
+- baseline traffic 이 `/api/*` 를 지속 호출 중이라 활성화 즉시 트레이스가 유입됨
+- ASG instance refresh 로 순차 교체하면 다운타임 없이 반영 가능
+
+### 5.2 Monitor / Workflow 정의
 - 콘솔에서 GUI 로 만들거나 `DataDog/datadog` provider 도입해 코드화
 - 우선은 **콘솔 GUI** 로 만들어 재현성은 스크린샷·수동 문서화
 
-### 5.4 (선택) RDS 확장
+### 5.3 (선택) RDS 확장
 - 시나리오 #5, #6 커버 목적
 - 앱 확장(DB 접속 엔드포인트) + RDS 시드 데이터 필요
 
@@ -461,11 +625,12 @@ NAT Gateway 는 시간당 과금이라 놀리지 말 것.
 미팅 결과에 따라 갈래가 나뉜다.
 
 ### 시나리오 A: Bits Detection Preview 우리 조직에 열림
-- 5.2 (APM 계측) 우선 진행 → 실측
-- 우리 EC2 위 chaos-app 에 트래픽 유발 → Bits Detection 자동 큐레이션 관찰
+- §4.7 (Datadog Agent 활성화) 절차대로 API key flip → 즉시 APM 트래픽 유입
+- baseline traffic 이 이미 하루 이상 흘렀다는 전제로 Bits Detection 이 `chaos-app` 을 큐레이션 대상으로 자동 식별
+- §4.6 (fleet 이질성 실습) 유발 후 Bits Detection 이 "특정 host 만 이상" 을 잡는지 관측
 
 ### 시나리오 B: BIO EC2 지원 로드맵 확인만 되고 개방은 이후
-- 5.1 (Datadog Agent 설치) 만 완료
+- §4.7 (Datadog Agent 활성화) 만 완료 — 인프라 지표·APM 트레이스 콘솔 관측
 - Workflow Automation 으로 #4 CPU→ASG 시나리오 실측 (MZC 데이터독팀 가이드 기반)
 - 나머지 시나리오(#1·#2·#3) 는 콘솔 Monitor + Workflow 조합으로 대체 실측
 

@@ -223,6 +223,12 @@ MZC AWS MSP 컨텍스트(4,000 hosts, 다수 end-customer, 한국 규제 환경)
   - 실행 IAM · 권한 모델
   - **감사 로그 / 실행 이력 replay**
   - Emergency kill switch, rollback 경로
+  - **처리이력 (audit trail) 세부 질문:**
+    - [ ] Bits가 실행한 모든 remediation의 **audit log 저장 위치 · 리텐션 · export 포맷** (SIEM 연동 가능?)
+    - [ ] **승인 / 거절 / 실행 / 실패 상태 전이**가 이력으로 남는가, 각 이벤트에 actor(사람 or Bits) 태깅되는가
+    - [ ] 실행된 액션을 **누가 어떤 권한으로 replay / revert** 할 수 있는가
+    - [ ] **한 인시던트당 처리이력 타임라인** 뷰가 UI에 있는가 (Detection → Investigation → Approval → Action → Validation)
+    - [ ] 처리이력이 **Datadog Incident Management** 또는 외부 ITSM(ServiceNow 등)과 연동되는가
 
 ### ⚠️ Medium — 파일럿 설계 시 필요
 

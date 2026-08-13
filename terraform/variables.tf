@@ -45,7 +45,7 @@ variable "azs" {
 variable "instance_type" {
   description = "PoC EC2 인스턴스 타입"
   type        = string
-  default     = "t3.small"
+  default     = "t3.medium"
 }
 
 variable "instance_count" {
